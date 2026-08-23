@@ -1,6 +1,9 @@
+import logging
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
+    AsyncSession,
     create_async_engine,
     async_sessionmaker
 )
@@ -17,15 +20,18 @@ class DataBase:
             max_overflow=settings.MAX_OVERFLOW,
             pool_timeout=settings.POOL_TIMEOUT
         )
-        self.session_factory = async_sessionmaker(
+        self.session_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
             bind=self.engine,
-            class_= AsyncEngine,
+            class_=AsyncSession,
             expire_on_commit=False
         )
+        self._logger = logging.getLogger(__name__)
 
-    async def check_db_connection(self):
+    async def check_db_connection(self) -> None:
         async with self.engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
+        self._logger.info("Database connection verified", extra={"event": "db_connection_verified"})
 
-    async def close(self):
+    async def close(self) -> None:
         await self.engine.dispose()
+        self._logger.info("Database engine disposed", extra={"event": "db_engine_disposed"})

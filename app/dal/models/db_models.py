@@ -23,6 +23,7 @@ class Base(DeclarativeBase):
 
 class Tender(Base):
     __tablename__ = "tenders"
+    __mapper_args__ = {"eager_defaults": True}
 
     id: Mapped[UUID] = mapped_column(
         SqlAlchemyUUID(as_uuid = True),
@@ -35,6 +36,10 @@ class Tender(Base):
         default=TenderStatus.DRAFT
     )
     created_by: Mapped[UUID] = mapped_column(
+        SqlAlchemyUUID(as_uuid=True),
+        nullable=False
+    )
+    updated_by: Mapped[UUID] = mapped_column(
         SqlAlchemyUUID(as_uuid=True),
         nullable=False
     )
@@ -79,6 +84,7 @@ class Tender(Base):
     )
     status_changes: Mapped[list["TenderStatusChangeLog"]] = relationship(
         back_populates="tender",
+        lazy="raise",
     )
 
     __table_args__ = (
@@ -94,6 +100,7 @@ class Tender(Base):
 
 class TenderStatusChangeLog(Base):
     __tablename__ = "tender_status_change_log"
+    __mapper_args__ = {"eager_defaults": True}
 
     id: Mapped[UUID] = mapped_column(
         SqlAlchemyUUID(as_uuid=True),
@@ -113,9 +120,9 @@ class TenderStatusChangeLog(Base):
         Enum(TenderStatus, name="tender_status"),
         nullable=False
     )
-    update_reason: Mapped[str | None] = mapped_column(
+    update_reason: Mapped[str] = mapped_column(
         Text,
-        nullable=True
+        nullable=False
     )
     changed_by: Mapped[UUID] = mapped_column(
         SqlAlchemyUUID(as_uuid=True),
@@ -127,7 +134,8 @@ class TenderStatusChangeLog(Base):
         nullable=False
     )
     tender: Mapped["Tender"] = relationship(
-        back_populates="status_changes"
+        back_populates="status_changes",
+        lazy="raise",
     )
 
     __table_args__ = (
