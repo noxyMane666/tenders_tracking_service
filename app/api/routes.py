@@ -37,6 +37,7 @@ async def update_tender_status(
 @router.get("/{tender_id}", response_model=TenderResponseDTO, status_code=200)
 async def get_tender_by_id(
         tender_id: UUID,
+        current_user_id: UUID = Depends(get_current_user_id),
         service: AbstractTenderService = Depends(get_tender_service)
 ) -> TenderResponseDTO:
     return await service.get_tender_by_id(tender_id)
@@ -44,6 +45,7 @@ async def get_tender_by_id(
 @router.get("", response_model=TenderListResponseDTO, status_code=200)
 async def get_tenders(
         request_params: GetTenderListParamsDTO = Depends(),
+        current_user_id: UUID = Depends(get_current_user_id),
         service: AbstractTenderService = Depends(get_tender_service)
 ) -> TenderListResponseDTO:
     return await service.get_tenders(request_params)
@@ -52,6 +54,7 @@ async def get_tenders(
 async def get_tender_history_by_id(
         tender_id: UUID,
         request_params: GetChangeLogListParamsDTO = Depends(),
+        current_user_id: UUID = Depends(get_current_user_id),
         service: AbstractTenderService = Depends(get_tender_service)
 ) -> ChangeLogListResponseDTO:
     return await service.get_tender_history(tender_id, request_params)
