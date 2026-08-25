@@ -24,7 +24,8 @@ class AppResources:
             auth_service = JwtAuthService(configuration.auth_settings)
 
             stack.pop_all()
-            return cls(database=database, auth_service=auth_service)
+
+        return cls(database=database, auth_service=auth_service)
 
     def _closers(self) -> list[tuple[str, Callable[[], Awaitable[None]]]]:
         return [
