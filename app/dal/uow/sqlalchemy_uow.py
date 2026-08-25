@@ -14,9 +14,14 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
         self.tenders = TenderRepo(session)
         self.change_logs = TenderChangeLogRepo(session)
         self._logger = logging.getLogger(__name__)
+        self._read_only = False
 
     async def __aenter__(self) -> "SqlAlchemyUnitOfWork":
+        self._read_only = False
         return self
+
+    def mark_read_only(self) -> None:
+        self._read_only = True
 
     async def __aexit__(
             self,
@@ -30,6 +35,14 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
                 extra={"event": "uow_rollback", "exception_type": exc_type.__name__},
             )
             await self.rollback()
+            return
+
+        if self._read_only:
+            await self.rollback()
+            self._logger.debug(
+                "Transaction rolled back (read-only)",
+                extra={"event": "uow_readonly_rollback"},
+            )
             return
 
         try:

@@ -1,10 +1,25 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Generic, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.enums.tender_status import TenderStatus
+
+T = TypeVar("T")
+
+
+class PaginationParamsDTO(BaseModel):
+    limit: int = Field(default=20, ge=1, le=100)
+    offset: int = Field(default=0, ge=0)
+
+
+class PageResponseDTO(BaseModel, Generic[T]):
+    items: list[T]
+    total: int
+    limit: int
+    offset: int
 
 
 class CreateTenderDTO(BaseModel):
@@ -34,16 +49,15 @@ class UpdateTenderStatusDTO(BaseModel):
     new_status: TenderStatus
     update_reason: str = Field(min_length=1)
 
-class GetTenderListParamsDTO(BaseModel):
+class GetTenderListParamsDTO(PaginationParamsDTO):
     status: TenderStatus | None = None
-    limit: int = Field(default=20, ge=1, le=100)
-    offset: int = Field(default=0, ge=0)
 
-class GetChangeLogListParamsDTO(BaseModel):
-    limit: int = Field(default=20, ge=1, le=100)
-    offset: int = Field(default=0, ge=0)
+class GetChangeLogListParamsDTO(PaginationParamsDTO):
+    pass
 
 class TenderResponseDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     status: TenderStatus
     created_by: UUID
@@ -58,13 +72,12 @@ class TenderResponseDTO(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-class TenderListResponseDTO(BaseModel):
-    items: list[TenderResponseDTO]
-    total: int
-    limit: int
-    offset: int
+class TenderListResponseDTO(PageResponseDTO[TenderResponseDTO]):
+    pass
 
 class TenderStatusChangeResponseDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     tender_id: UUID
     old_status: TenderStatus
@@ -73,8 +86,5 @@ class TenderStatusChangeResponseDTO(BaseModel):
     changed_by: UUID
     changed_at: datetime
 
-class ChangeLogListResponseDTO(BaseModel):
-    items: list[TenderStatusChangeResponseDTO]
-    total: int
-    limit: int
-    offset: int
+class ChangeLogListResponseDTO(PageResponseDTO[TenderStatusChangeResponseDTO]):
+    pass

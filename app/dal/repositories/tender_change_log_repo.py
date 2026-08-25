@@ -16,23 +16,27 @@ class TenderChangeLogRepo(AbstractTenderChangeLogRepo):
         await self._session.flush()
         return log_entry
 
-    async def get_list_by_tender_id(
+    async def get_list_with_total_by_tender_id(
             self,
             tender_id: UUID,
             limit: int,
             offset: int
-    ) -> list[TenderStatusChangeLog]:
+    ) -> tuple[list[TenderStatusChangeLog], int]:
         statement = (
-            select(TenderStatusChangeLog)
+            select(TenderStatusChangeLog, func.count().over().label("total"))
             .where(TenderStatusChangeLog.tender_id == tender_id)
             .order_by(TenderStatusChangeLog.changed_at.desc(), TenderStatusChangeLog.id.desc())
             .limit(limit)
             .offset(offset)
         )
         result = await self._session.execute(statement)
-        return list(result.scalars().all())
+        rows = result.all()
+        if rows:
+            return [row[0] for row in rows], rows[0][1]
 
-    async def count_by_tender_id(self, tender_id: UUID) -> int:
+        return [], await self._count_by_tender_id(tender_id)
+
+    async def _count_by_tender_id(self, tender_id: UUID) -> int:
         statement = (
             select(func.count())
             .select_from(TenderStatusChangeLog)

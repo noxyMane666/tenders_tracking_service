@@ -65,7 +65,7 @@ class TenderServiceImpl(AbstractTenderService):
                 "Tender created",
                 extra={"event": "tender_created", "tender_id": str(tender.id)},
             )
-            return self._to_tender_dto(tender)
+            return TenderResponseDTO.model_validate(tender)
 
     async def update_tender_status(
             self,
@@ -111,7 +111,7 @@ class TenderServiceImpl(AbstractTenderService):
                     "new_status": new_status,
                 },
             )
-            return self._to_tender_dto(tender)
+            return TenderResponseDTO.model_validate(tender)
 
     async def get_tender_by_id(self, tender_id: UUID) -> TenderResponseDTO:
         self._logger.debug(
@@ -120,11 +120,13 @@ class TenderServiceImpl(AbstractTenderService):
         )
 
         async with self._uow as uow:
+            uow.mark_read_only()
+
             tender = await uow.tenders.get_by_id(tender_id)
             if tender is None:
                 raise TenderNotFoundException(tender_id)
 
-            return self._to_tender_dto(tender)
+            return TenderResponseDTO.model_validate(tender)
 
     async def get_tenders(self, request_params: GetTenderListParamsDTO) -> TenderListResponseDTO:
         self._logger.debug(
@@ -138,19 +140,20 @@ class TenderServiceImpl(AbstractTenderService):
         )
 
         async with self._uow as uow:
-            items = await uow.tenders.get_list(
+            uow.mark_read_only()
+
+            items, total = await uow.tenders.get_list_with_total(
                 status=request_params.status,
                 limit=request_params.limit,
                 offset=request_params.offset,
             )
-            total = await uow.tenders.count(status=request_params.status)
 
             self._logger.debug(
                 "Tender list returned",
                 extra={"event": "tender_list_returned", "total": total, "returned": len(items)},
             )
             return TenderListResponseDTO(
-                items=[self._to_tender_dto(tender) for tender in items],
+                items=[TenderResponseDTO.model_validate(tender) for tender in items],
                 total=total,
                 limit=request_params.limit,
                 offset=request_params.offset,
@@ -167,23 +170,24 @@ class TenderServiceImpl(AbstractTenderService):
         )
 
         async with self._uow as uow:
+            uow.mark_read_only()
+
             tender = await uow.tenders.get_by_id(tender_id)
             if tender is None:
                 raise TenderNotFoundException(tender_id)
 
-            items = await uow.change_logs.get_list_by_tender_id(
+            items, total = await uow.change_logs.get_list_with_total_by_tender_id(
                 tender_id=tender_id,
                 limit=request_params.limit,
                 offset=request_params.offset,
             )
-            total = await uow.change_logs.count_by_tender_id(tender_id)
 
             self._logger.debug(
                 "Tender history returned",
                 extra={"event": "tender_history_returned", "tender_id": str(tender_id), "total": total},
             )
             return ChangeLogListResponseDTO(
-                items=[self._to_change_log_dto(log_entry) for log_entry in items],
+                items=[TenderStatusChangeResponseDTO.model_validate(log_entry) for log_entry in items],
                 total=total,
                 limit=request_params.limit,
                 offset=request_params.offset,
@@ -197,33 +201,3 @@ class TenderServiceImpl(AbstractTenderService):
     ) -> None:
         if new_status not in cls._ALLOWED_STATUS_TRANSITIONS[current_status]:
             raise InvalidTenderStatusTransitionException(current_status, new_status)
-
-    @staticmethod
-    def _to_tender_dto(tender: Tender) -> TenderResponseDTO:
-        return TenderResponseDTO(
-            id=tender.id,
-            status=tender.status,
-            created_by=tender.created_by,
-            updated_by=tender.updated_by,
-            title=tender.title,
-            description=tender.description,
-            issuer_name=tender.issuer_name,
-            budget=tender.budget,
-            currency=tender.currency,
-            published_at=tender.published_at,
-            deadline_at=tender.deadline_at,
-            created_at=tender.created_at,
-            updated_at=tender.updated_at,
-        )
-
-    @staticmethod
-    def _to_change_log_dto(log_entry: TenderStatusChangeLog) -> TenderStatusChangeResponseDTO:
-        return TenderStatusChangeResponseDTO(
-            id=log_entry.id,
-            tender_id=log_entry.tender_id,
-            old_status=log_entry.old_status,
-            new_status=log_entry.new_status,
-            update_reason=log_entry.update_reason,
-            changed_by=log_entry.changed_by,
-            changed_at=log_entry.changed_at,
-        )
