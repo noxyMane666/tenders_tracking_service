@@ -15,7 +15,7 @@ from app.exceptions.domain_exceptions import (
     TenderNotFoundException
 )
 from app.services.tender_service import TenderServiceImpl
-from tests.conftest import make_create_dto, make_update_dto
+from tests.integration.conftest import make_create_dto, make_update_dto
 
 
 async def test_create_tender_sets_created_by_and_updated_by_from_current_user(

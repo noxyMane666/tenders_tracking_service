@@ -10,7 +10,7 @@ from app.dal.uow.sqlalchemy_uow import SqlAlchemyUnitOfWork
 from app.enums.tender_status import TenderStatus
 from app.exceptions.domain_exceptions import InvalidTenderStatusTransitionException
 from app.services.tender_service import TenderServiceImpl
-from tests.conftest import make_create_dto, make_update_dto
+from tests.integration.conftest import make_create_dto, make_update_dto
 
 
 async def test_concurrent_status_updates_on_the_same_tender_are_serialized(
