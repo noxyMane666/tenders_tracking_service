@@ -68,12 +68,14 @@ class GlobalExceptionHandler:
         }
         if status_code >= 500:
             self._logger.exception("Domain error", extra=log_extra)
+            client_message = "Internal Server Error"
         else:
             self._logger.warning("Domain error", extra=log_extra)
+            client_message = str(exc)
 
         return JSONResponse(
             status_code=status_code,
-            content={"message": str(exc)},
+            content={"message": client_message},
             headers=self._request_id_header(request),
         )
 
