@@ -22,6 +22,9 @@ from app.services.abstractions.interfaces import AbstractTenderService
 
 
 class TenderServiceImpl(AbstractTenderService):
+    """Tender business logic: status state machine, change-log recording,
+    orchestration over AbstractUnitOfWork."""
+
     _ALLOWED_STATUS_TRANSITIONS: dict[TenderStatus, frozenset[TenderStatus]] = {
         TenderStatus.DRAFT: frozenset({TenderStatus.ACTIVE}),
         TenderStatus.ACTIVE: frozenset({TenderStatus.WON, TenderStatus.LOST}),

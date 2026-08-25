@@ -16,7 +16,7 @@ class AbstractTenderRepo(ABC):
 
     @abstractmethod
     async def get_by_id_for_update(self, tender_id: UUID) -> Tender | None:
-        pass
+        """Reads the tender with a row lock (SELECT ... FOR UPDATE)."""
 
     @abstractmethod
     async def update_status(self, tender: Tender, new_status: TenderStatus, updated_by: UUID) -> Tender:

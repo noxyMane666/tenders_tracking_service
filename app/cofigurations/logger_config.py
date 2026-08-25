@@ -19,6 +19,9 @@ def _normalize_extra_key(key: str) -> str:
 
 
 class SafeExtraLogger(logging.Logger):
+    """Renames `extra` keys that collide with reserved LogRecord attributes
+    instead of crashing the log call."""
+
     def makeRecord(
             self,
             name: str,
@@ -46,6 +49,8 @@ class RequestContextFilter(logging.Filter):
 
 
 class CompactFormatter(logging.Formatter):
+    """One-line log format: timestamp, level, message, request context, extras."""
+
     DISPLAY_ORDER_KEYS = ("event", "status_code", "tender_id", "duration_ms", "total")
     HIDDEN_KEYS = RESERVED_LOG_RECORD_KEYS | {
         "request_id",

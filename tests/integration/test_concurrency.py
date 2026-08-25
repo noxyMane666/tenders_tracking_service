@@ -17,6 +17,9 @@ async def test_concurrent_status_updates_on_the_same_tender_are_serialized(
         database: DataBase,
         user_id: uuid.UUID
 ) -> None:
+    """Two real sessions race a status update on the same tender; exactly
+    one should win the row lock, the other should see the new status
+    and get rejected."""
     async with database.session_factory() as setup_session:
         setup_service = TenderServiceImpl(SqlAlchemyUnitOfWork(setup_session))
         tender = await setup_service.create_tender(make_create_dto(), user_id)

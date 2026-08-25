@@ -8,6 +8,9 @@ from app.dal.repositories.abstractions.interfaces import (
 
 
 class AbstractUnitOfWork(ABC):
+    """Transaction boundary around the repositories: commits on a clean
+    `async with` exit, rolls back on exception."""
+
     tenders: AbstractTenderRepo
     change_logs: AbstractTenderChangeLogRepo
 
@@ -34,4 +37,4 @@ class AbstractUnitOfWork(ABC):
 
     @abstractmethod
     def mark_read_only(self) -> None:
-        pass
+        """Roll back instead of commit on exit, even without an exception."""

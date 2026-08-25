@@ -30,6 +30,9 @@ def register_exception_handlers(app: FastAPI, logger: logging.Logger) -> None:
 
 
 class GlobalExceptionHandler:
+    """Maps every exception type to an HTTP response. Domain exceptions
+    mapped to 5xx never leak str(exc) to the client, only to the log."""
+
     def __init__(self, logger: logging.Logger):
         self._logger = logger
 
