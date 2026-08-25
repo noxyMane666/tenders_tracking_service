@@ -26,7 +26,7 @@ class JwtAuthService(AbstractAuthService):
                 "JWT validation failed",
                 extra={"event": "jwt_invalid", "error": str(e)},
             )
-            raise InvalidAuthTokenException(str(e))
+            raise InvalidAuthTokenException("token is invalid or expired")
 
         raw_user_id = payload.get(self._settings.JWT_USER_ID_CLAIM)
         try:
@@ -36,4 +36,4 @@ class JwtAuthService(AbstractAuthService):
                 "JWT user id claim is not a valid UUID",
                 extra={"event": "jwt_invalid_user_id", "claim": self._settings.JWT_USER_ID_CLAIM},
             )
-            raise InvalidAuthTokenException(f"claim '{self._settings.JWT_USER_ID_CLAIM}' is not a valid UUID")
+            raise InvalidAuthTokenException("token is invalid or expired")
