@@ -23,16 +23,12 @@ class AbstractTenderRepo(ABC):
         pass
 
     @abstractmethod
-    async def get_list(
+    async def get_list_with_total(
             self,
             status: TenderStatus | None,
             limit: int,
             offset: int
-    ) -> list[Tender]:
-        pass
-
-    @abstractmethod
-    async def count(self, status: TenderStatus | None) -> int:
+    ) -> tuple[list[Tender], int]:
         pass
 
 
@@ -42,14 +38,10 @@ class AbstractTenderChangeLogRepo(ABC):
         pass
 
     @abstractmethod
-    async def get_list_by_tender_id(
+    async def get_list_with_total_by_tender_id(
             self,
             tender_id: UUID,
             limit: int,
             offset: int
-    ) -> list[TenderStatusChangeLog]:
-        pass
-
-    @abstractmethod
-    async def count_by_tender_id(self, tender_id: UUID) -> int:
+    ) -> tuple[list[TenderStatusChangeLog], int]:
         pass

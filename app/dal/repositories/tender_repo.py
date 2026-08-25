@@ -35,13 +35,13 @@ class TenderRepo(AbstractTenderRepo):
         await self._session.flush()
         return tender
 
-    async def get_list(
+    async def get_list_with_total(
             self,
             status: TenderStatus | None,
             limit: int,
             offset: int
-    ) -> list[Tender]:
-        statement = select(Tender)
+    ) -> tuple[list[Tender], int]:
+        statement = select(Tender, func.count().over().label("total"))
         if status is not None:
             statement = statement.where(Tender.status == status)
         statement = (
@@ -51,9 +51,13 @@ class TenderRepo(AbstractTenderRepo):
             .offset(offset)
         )
         result = await self._session.execute(statement)
-        return list(result.scalars().all())
+        rows = result.all()
+        if rows:
+            return [row[0] for row in rows], rows[0][1]
 
-    async def count(self, status: TenderStatus | None) -> int:
+        return [], await self._count(status)
+
+    async def _count(self, status: TenderStatus | None) -> int:
         statement = select(func.count()).select_from(Tender)
         if status is not None:
             statement = statement.where(Tender.status == status)

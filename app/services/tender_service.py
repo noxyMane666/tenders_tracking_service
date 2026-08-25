@@ -138,12 +138,11 @@ class TenderServiceImpl(AbstractTenderService):
         )
 
         async with self._uow as uow:
-            items = await uow.tenders.get_list(
+            items, total = await uow.tenders.get_list_with_total(
                 status=request_params.status,
                 limit=request_params.limit,
                 offset=request_params.offset,
             )
-            total = await uow.tenders.count(status=request_params.status)
 
             self._logger.debug(
                 "Tender list returned",
@@ -171,12 +170,11 @@ class TenderServiceImpl(AbstractTenderService):
             if tender is None:
                 raise TenderNotFoundException(tender_id)
 
-            items = await uow.change_logs.get_list_by_tender_id(
+            items, total = await uow.change_logs.get_list_with_total_by_tender_id(
                 tender_id=tender_id,
                 limit=request_params.limit,
                 offset=request_params.offset,
             )
-            total = await uow.change_logs.count_by_tender_id(tender_id)
 
             self._logger.debug(
                 "Tender history returned",
