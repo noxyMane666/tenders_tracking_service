@@ -2,7 +2,7 @@ import logging
 import logging.config
 import os
 from contextvars import ContextVar
-from datetime import datetime
+from datetime import datetime, timezone
 
 REQUEST_ID_CTX: ContextVar[str] = ContextVar("request_id", default="-")
 REQUEST_METHOD_CTX: ContextVar[str] = ContextVar("request_method", default="-")
@@ -61,7 +61,7 @@ class CompactFormatter(logging.Formatter):
         return f"{text[:237]}..." if len(text) > 240 else text
 
     def format(self, record: logging.LogRecord) -> str:
-        ts = datetime.fromtimestamp(record.created).strftime("%Y-%m-%d %H:%M:%S")
+        ts = datetime.fromtimestamp(record.created, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
         message = f"{ts} {record.levelname:<8} {record.name}: {record.getMessage()}"
 
         request_id = getattr(record, "request_id", "-")
