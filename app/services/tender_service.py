@@ -65,7 +65,7 @@ class TenderServiceImpl(AbstractTenderService):
                 "Tender created",
                 extra={"event": "tender_created", "tender_id": str(tender.id)},
             )
-            return self._to_tender_dto(tender)
+            return TenderResponseDTO.model_validate(tender)
 
     async def update_tender_status(
             self,
@@ -111,7 +111,7 @@ class TenderServiceImpl(AbstractTenderService):
                     "new_status": new_status,
                 },
             )
-            return self._to_tender_dto(tender)
+            return TenderResponseDTO.model_validate(tender)
 
     async def get_tender_by_id(self, tender_id: UUID) -> TenderResponseDTO:
         self._logger.debug(
@@ -126,7 +126,7 @@ class TenderServiceImpl(AbstractTenderService):
             if tender is None:
                 raise TenderNotFoundException(tender_id)
 
-            return self._to_tender_dto(tender)
+            return TenderResponseDTO.model_validate(tender)
 
     async def get_tenders(self, request_params: GetTenderListParamsDTO) -> TenderListResponseDTO:
         self._logger.debug(
@@ -153,7 +153,7 @@ class TenderServiceImpl(AbstractTenderService):
                 extra={"event": "tender_list_returned", "total": total, "returned": len(items)},
             )
             return TenderListResponseDTO(
-                items=[self._to_tender_dto(tender) for tender in items],
+                items=[TenderResponseDTO.model_validate(tender) for tender in items],
                 total=total,
                 limit=request_params.limit,
                 offset=request_params.offset,
@@ -187,7 +187,7 @@ class TenderServiceImpl(AbstractTenderService):
                 extra={"event": "tender_history_returned", "tender_id": str(tender_id), "total": total},
             )
             return ChangeLogListResponseDTO(
-                items=[self._to_change_log_dto(log_entry) for log_entry in items],
+                items=[TenderStatusChangeResponseDTO.model_validate(log_entry) for log_entry in items],
                 total=total,
                 limit=request_params.limit,
                 offset=request_params.offset,
@@ -201,33 +201,3 @@ class TenderServiceImpl(AbstractTenderService):
     ) -> None:
         if new_status not in cls._ALLOWED_STATUS_TRANSITIONS[current_status]:
             raise InvalidTenderStatusTransitionException(current_status, new_status)
-
-    @staticmethod
-    def _to_tender_dto(tender: Tender) -> TenderResponseDTO:
-        return TenderResponseDTO(
-            id=tender.id,
-            status=tender.status,
-            created_by=tender.created_by,
-            updated_by=tender.updated_by,
-            title=tender.title,
-            description=tender.description,
-            issuer_name=tender.issuer_name,
-            budget=tender.budget,
-            currency=tender.currency,
-            published_at=tender.published_at,
-            deadline_at=tender.deadline_at,
-            created_at=tender.created_at,
-            updated_at=tender.updated_at,
-        )
-
-    @staticmethod
-    def _to_change_log_dto(log_entry: TenderStatusChangeLog) -> TenderStatusChangeResponseDTO:
-        return TenderStatusChangeResponseDTO(
-            id=log_entry.id,
-            tender_id=log_entry.tender_id,
-            old_status=log_entry.old_status,
-            new_status=log_entry.new_status,
-            update_reason=log_entry.update_reason,
-            changed_by=log_entry.changed_by,
-            changed_at=log_entry.changed_at,
-        )
