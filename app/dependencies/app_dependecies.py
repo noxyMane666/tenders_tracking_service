@@ -5,6 +5,7 @@ from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.dal.cache.abstractions.interfaces import AbstractTenderCache
 from app.dal.db.database import DataBase
 from app.dal.uow.abstractions.interfaces import AbstractUnitOfWork
 from app.dal.uow.sqlalchemy_uow import SqlAlchemyUnitOfWork
@@ -32,10 +33,15 @@ async def get_unit_of_work(
     return SqlAlchemyUnitOfWork(session)
 
 
+async def get_tender_cache(request: Request) -> AbstractTenderCache:
+    return request.app.state.tender_cache
+
+
 async def get_tender_service(
-        uow: AbstractUnitOfWork = Depends(get_unit_of_work)
+        uow: AbstractUnitOfWork = Depends(get_unit_of_work),
+        cache: AbstractTenderCache = Depends(get_tender_cache)
 ) -> AbstractTenderService:
-    return TenderServiceImpl(uow)
+    return TenderServiceImpl(uow, cache)
 
 
 async def get_auth_service(request: Request) -> AbstractAuthService:

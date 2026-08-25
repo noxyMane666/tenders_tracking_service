@@ -10,9 +10,12 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from redis.asyncio import Redis
+
 from app import create_app
 from app.api.models.api_models import CreateTenderDTO, UpdateTenderStatusDTO
 from app.cofigurations.config import Configuration
+from app.dal.cache.redis_tender_cache import RedisTenderCache
 from app.dal.db.database import DataBase
 from app.dal.uow.sqlalchemy_uow import SqlAlchemyUnitOfWork
 from app.dependencies.app_dependecies import get_session
@@ -49,8 +52,20 @@ async def uow(session: AsyncSession) -> SqlAlchemyUnitOfWork:
 
 
 @pytest_asyncio.fixture
-async def service(uow: SqlAlchemyUnitOfWork) -> TenderServiceImpl:
-    return TenderServiceImpl(uow)
+async def redis_client() -> AsyncIterator[Redis]:
+    client = Redis.from_url(Configuration().cache_settings.REDIS_URL)
+    yield client
+    await client.aclose()
+
+
+@pytest_asyncio.fixture
+async def cache(redis_client: Redis) -> RedisTenderCache:
+    return RedisTenderCache(redis_client, ttl_seconds=Configuration().cache_settings.CACHE_TTL_SECONDS)
+
+
+@pytest_asyncio.fixture
+async def service(uow: SqlAlchemyUnitOfWork, cache: RedisTenderCache) -> TenderServiceImpl:
+    return TenderServiceImpl(uow, cache)
 
 
 @pytest.fixture

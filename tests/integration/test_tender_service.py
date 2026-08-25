@@ -220,6 +220,35 @@ async def test_get_tender_by_id_returns_tender(service: TenderServiceImpl, user_
     assert fetched.title == "Find me"
 
 
+async def test_get_tender_by_id_caches_result_and_avoids_second_db_read(
+        service: TenderServiceImpl,
+        uow: SqlAlchemyUnitOfWork,
+        user_id: uuid.UUID
+) -> None:
+    created = await service.create_tender(make_create_dto(title="Cached"), user_id)
+
+    with patch.object(uow.tenders, "get_by_id", wraps=uow.tenders.get_by_id) as get_by_id_spy:
+        first = await service.get_tender_by_id(created.id)
+        second = await service.get_tender_by_id(created.id)
+
+    assert get_by_id_spy.await_count == 1
+    assert first == second
+
+
+async def test_update_tender_status_invalidates_cache(
+        service: TenderServiceImpl,
+        user_id: uuid.UUID
+) -> None:
+    created = await service.create_tender(make_create_dto(), user_id)
+    await service.get_tender_by_id(created.id)
+
+    updated = await service.update_tender_status(created.id, make_update_dto(TenderStatus.ACTIVE), user_id)
+    fetched = await service.get_tender_by_id(created.id)
+
+    assert fetched.status == TenderStatus.ACTIVE
+    assert fetched.status == updated.status
+
+
 async def test_get_tenders_without_filter_returns_all_statuses(
         service: TenderServiceImpl,
         user_id: uuid.UUID
