@@ -2,6 +2,7 @@ import os
 
 from dotenv import load_dotenv
 
+from app.cofigurations.app_limits_settings import AppLimitsSettings
 from app.cofigurations.auth_settings import AuthSettings
 from app.cofigurations.db_settings import DataBaseSettings
 
@@ -11,6 +12,7 @@ class Configuration:
     def __init__(self):
         self.db_settings = self._load_db_settings()
         self.auth_settings = self._load_auth_settings()
+        self.app_limits_settings = self._load_app_limits()
 
         self._validate_required_fields()
 
@@ -33,10 +35,17 @@ class Configuration:
             JWT_USER_ID_CLAIM=os.getenv("JWT_USER_ID_CLAIM", "sub"),
         )
 
+    @staticmethod
+    def _load_app_limits() -> AppLimitsSettings:
+        return AppLimitsSettings(
+            REQUEST_BODY_MAX_SIZE=int(os.getenv("REQUEST_BODY_MAX_SIZE", "32768"))
+        )
+
     def _validate_required_fields(self):
         required_fields = {
             "DB_CONNECTION_STRING": self.db_settings.DB_CONNECTION_STRING,
             "JWT_SECRET": self.auth_settings.JWT_SECRET,
+            "REQUEST_BODY_MAX_SIZE": self.app_limits_settings.REQUEST_BODY_MAX_SIZE
         }
 
         for field_name, value in required_fields.items():
