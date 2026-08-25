@@ -19,6 +19,10 @@ class CreateTenderDTO(BaseModel):
     @model_validator(mode="after")
     def _check_deadline_after_published(self) -> "CreateTenderDTO":
         if self.published_at is not None and self.deadline_at is not None:
+            if bool(self.published_at.tzinfo) != bool(self.deadline_at.tzinfo):
+                raise ValueError(
+                    "published_at and deadline_at must both include a timezone offset or both omit one"
+                )
             if self.deadline_at <= self.published_at:
                 raise ValueError("deadline_at must be after published_at")
         return self
