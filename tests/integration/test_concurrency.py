@@ -4,6 +4,7 @@ import uuid
 from sqlalchemy import delete
 
 from app.api.models.api_models import GetChangeLogListParamsDTO
+from app.dal.cache.redis_tender_cache import RedisTenderCache
 from app.dal.db.database import DataBase
 from app.dal.models.db_models import Tender, TenderStatusChangeLog
 from app.dal.uow.sqlalchemy_uow import SqlAlchemyUnitOfWork
@@ -15,20 +16,21 @@ from tests.integration.conftest import make_create_dto, make_update_dto
 
 async def test_concurrent_status_updates_on_the_same_tender_are_serialized(
         database: DataBase,
+        cache: RedisTenderCache,
         user_id: uuid.UUID
 ) -> None:
     """Two real sessions race a status update on the same tender; exactly
     one should win the row lock, the other should see the new status
     and get rejected."""
     async with database.session_factory() as setup_session:
-        setup_service = TenderServiceImpl(SqlAlchemyUnitOfWork(setup_session))
+        setup_service = TenderServiceImpl(SqlAlchemyUnitOfWork(setup_session), cache)
         tender = await setup_service.create_tender(make_create_dto(), user_id)
         tender = await setup_service.update_tender_status(tender.id, make_update_dto(TenderStatus.ACTIVE), user_id)
 
     try:
         async def attempt(new_status: TenderStatus) -> TenderStatus | Exception:
             async with database.session_factory() as session:
-                service = TenderServiceImpl(SqlAlchemyUnitOfWork(session))
+                service = TenderServiceImpl(SqlAlchemyUnitOfWork(session), cache)
                 try:
                     updated = await service.update_tender_status(
                         tender.id, make_update_dto(new_status), user_id
@@ -50,7 +52,7 @@ async def test_concurrent_status_updates_on_the_same_tender_are_serialized(
         assert successes[0] in (TenderStatus.WON, TenderStatus.LOST)
 
         async with database.session_factory() as verify_session:
-            verify_service = TenderServiceImpl(SqlAlchemyUnitOfWork(verify_session))
+            verify_service = TenderServiceImpl(SqlAlchemyUnitOfWork(verify_session), cache)
             final = await verify_service.get_tender_by_id(tender.id)
             assert final.status == successes[0]
 

@@ -26,6 +26,7 @@ def build_lifespan(configuration: Configuration) -> Callable[[FastAPI], Abstract
 
         app.state.database = resources.database
         app.state.auth_service = resources.auth_service
+        app.state.tender_cache = resources.tender_cache
 
         yield
 

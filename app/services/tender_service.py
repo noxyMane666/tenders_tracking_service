@@ -11,6 +11,7 @@ from app.api.models.api_models import (
     TenderStatusChangeResponseDTO,
     UpdateTenderStatusDTO
 )
+from app.dal.cache.abstractions.interfaces import AbstractTenderCache
 from app.dal.models.db_models import Tender, TenderStatusChangeLog
 from app.dal.uow.abstractions.interfaces import AbstractUnitOfWork
 from app.enums.tender_status import TenderStatus
@@ -32,8 +33,9 @@ class TenderServiceImpl(AbstractTenderService):
         TenderStatus.LOST: frozenset(),
     }
 
-    def __init__(self, uow: AbstractUnitOfWork):
+    def __init__(self, uow: AbstractUnitOfWork, cache: AbstractTenderCache):
         self._uow = uow
+        self._cache = cache
         self._logger = logging.getLogger(__name__)
 
     async def create_tender(
@@ -114,13 +116,20 @@ class TenderServiceImpl(AbstractTenderService):
                     "new_status": new_status,
                 },
             )
-            return TenderResponseDTO.model_validate(tender)
+            response = TenderResponseDTO.model_validate(tender)
+
+        await self._cache.invalidate_tender(tender_id)
+        return response
 
     async def get_tender_by_id(self, tender_id: UUID) -> TenderResponseDTO:
         self._logger.debug(
             "Tender lookup requested",
             extra={"event": "tender_lookup_requested", "tender_id": str(tender_id)},
         )
+
+        cached_tender = await self._cache.get_tender(tender_id)
+        if cached_tender is not None:
+            return cached_tender
 
         async with self._uow as uow:
             uow.mark_read_only()
@@ -129,7 +138,10 @@ class TenderServiceImpl(AbstractTenderService):
             if tender is None:
                 raise TenderNotFoundException(tender_id)
 
-            return TenderResponseDTO.model_validate(tender)
+            response = TenderResponseDTO.model_validate(tender)
+
+        await self._cache.set_tender(response)
+        return response
 
     async def get_tenders(self, request_params: GetTenderListParamsDTO) -> TenderListResponseDTO:
         self._logger.debug(

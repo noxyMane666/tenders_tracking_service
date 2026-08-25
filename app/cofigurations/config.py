@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 from app.cofigurations.app_limits_settings import AppLimitsSettings
 from app.cofigurations.auth_settings import AuthSettings
+from app.cofigurations.cache_settings import CacheSettings
 from app.cofigurations.db_settings import DataBaseSettings
 
 load_dotenv()
@@ -13,6 +14,7 @@ class Configuration:
         self.db_settings = self._load_db_settings()
         self.auth_settings = self._load_auth_settings()
         self.app_limits_settings = self._load_app_limits()
+        self.cache_settings = self._load_cache_settings()
 
         self._validate_required_fields()
 
@@ -39,6 +41,13 @@ class Configuration:
     def _load_app_limits() -> AppLimitsSettings:
         return AppLimitsSettings(
             REQUEST_BODY_MAX_SIZE=int(os.getenv("REQUEST_BODY_MAX_SIZE", "32768"))
+        )
+
+    @staticmethod
+    def _load_cache_settings() -> CacheSettings:
+        return CacheSettings(
+            REDIS_URL=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+            CACHE_TTL_SECONDS=int(os.getenv("CACHE_TTL_SECONDS", "60"))
         )
 
     def _validate_required_fields(self):
