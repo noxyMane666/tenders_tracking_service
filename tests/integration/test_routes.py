@@ -164,3 +164,16 @@ async def test_get_changelog_requires_auth(client: AsyncClient) -> None:
     response = await client.get(f"/api/v1/tenders/{uuid.uuid4()}/changelog")
 
     assert response.status_code == 401
+
+
+async def test_create_tender_with_oversized_body_returns_413(
+        client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
+    response = await client.post(
+        "/api/v1/tenders",
+        json=_tender_body(description="x" * 40_000),
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 413
+    assert "x-request-id" in response.headers
