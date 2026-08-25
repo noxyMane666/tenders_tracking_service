@@ -270,6 +270,21 @@ async def test_get_tenders_offset_beyond_total_returns_empty_with_correct_total(
     assert page.total == 1
 
 
+async def test_get_tenders_offset_beyond_total_with_status_filter_returns_correct_total(
+        service: TenderServiceImpl,
+        user_id: uuid.UUID
+) -> None:
+    active = await service.create_tender(make_create_dto(), user_id)
+    await service.update_tender_status(active.id, make_update_dto(TenderStatus.ACTIVE), user_id)
+
+    page = await service.get_tenders(
+        GetTenderListParamsDTO(status=TenderStatus.ACTIVE, limit=20, offset=999)
+    )
+
+    assert page.items == []
+    assert page.total == 1
+
+
 async def test_write_paths_commit_read_paths_roll_back(
         service: TenderServiceImpl,
         uow: SqlAlchemyUnitOfWork,

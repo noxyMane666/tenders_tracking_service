@@ -1,16 +1,21 @@
 import uuid
 from collections.abc import AsyncIterator
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
+import httpx
+import jwt
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app import create_app
 from app.api.models.api_models import CreateTenderDTO, UpdateTenderStatusDTO
 from app.cofigurations.config import Configuration
 from app.dal.db.database import DataBase
 from app.dal.uow.sqlalchemy_uow import SqlAlchemyUnitOfWork
+from app.dependencies.app_dependecies import get_session
 from app.enums.tender_status import TenderStatus
 from app.services.tender_service import TenderServiceImpl
 
@@ -49,6 +54,36 @@ async def service(uow: SqlAlchemyUnitOfWork) -> TenderServiceImpl:
 @pytest.fixture
 def user_id() -> uuid.UUID:
     return uuid.uuid4()
+
+
+@pytest_asyncio.fixture
+async def client(session: AsyncSession) -> AsyncIterator[httpx.AsyncClient]:
+    app = create_app()
+
+    async def override_get_session() -> AsyncIterator[AsyncSession]:
+        yield session
+
+    app.dependency_overrides[get_session] = override_get_session
+
+    async with app.router.lifespan_context(app):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as async_client:
+            yield async_client
+
+
+@pytest.fixture
+def auth_token(user_id: uuid.UUID) -> str:
+    config = Configuration()
+    return jwt.encode(
+        {"sub": str(user_id), "exp": datetime.now(timezone.utc) + timedelta(minutes=5)},
+        config.auth_settings.JWT_SECRET,
+        algorithm=config.auth_settings.JWT_ALGORITHM,
+    )
+
+
+@pytest.fixture
+def auth_headers(auth_token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {auth_token}"}
 
 
 def make_create_dto(**overrides: Any) -> CreateTenderDTO:
