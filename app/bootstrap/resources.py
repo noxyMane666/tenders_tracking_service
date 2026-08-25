@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Awaitable, Callable
+from contextlib import AsyncExitStack
 
 from app.cofigurations.config import Configuration
 from app.dal.db.database import DataBase
@@ -15,16 +16,15 @@ class AppResources:
 
     @classmethod
     async def create(cls, configuration: Configuration) -> "AppResources":
-        database = DataBase(configuration.db_settings)
-        try:
+        async with AsyncExitStack() as stack:
+            database = DataBase(configuration.db_settings)
+            stack.push_async_callback(database.close)
             await database.check_db_connection()
-        except Exception:
-            await database.close()
-            raise
 
-        auth_service = JwtAuthService(configuration.auth_settings)
+            auth_service = JwtAuthService(configuration.auth_settings)
 
-        return cls(database=database, auth_service=auth_service)
+            stack.pop_all()
+            return cls(database=database, auth_service=auth_service)
 
     def _closers(self) -> list[tuple[str, Callable[[], Awaitable[None]]]]:
         return [
