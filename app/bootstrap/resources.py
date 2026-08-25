@@ -16,7 +16,11 @@ class AppResources:
     @classmethod
     async def create(cls, configuration: Configuration) -> "AppResources":
         database = DataBase(configuration.db_settings)
-        await database.check_db_connection()
+        try:
+            await database.check_db_connection()
+        except Exception:
+            await database.close()
+            raise
 
         auth_service = JwtAuthService(configuration.auth_settings)
 
