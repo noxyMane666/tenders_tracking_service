@@ -120,6 +120,8 @@ class TenderServiceImpl(AbstractTenderService):
         )
 
         async with self._uow as uow:
+            uow.mark_read_only()
+
             tender = await uow.tenders.get_by_id(tender_id)
             if tender is None:
                 raise TenderNotFoundException(tender_id)
@@ -138,6 +140,8 @@ class TenderServiceImpl(AbstractTenderService):
         )
 
         async with self._uow as uow:
+            uow.mark_read_only()
+
             items, total = await uow.tenders.get_list_with_total(
                 status=request_params.status,
                 limit=request_params.limit,
@@ -166,6 +170,8 @@ class TenderServiceImpl(AbstractTenderService):
         )
 
         async with self._uow as uow:
+            uow.mark_read_only()
+
             tender = await uow.tenders.get_by_id(tender_id)
             if tender is None:
                 raise TenderNotFoundException(tender_id)

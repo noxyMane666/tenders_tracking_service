@@ -31,3 +31,7 @@ class AbstractUnitOfWork(ABC):
     @abstractmethod
     async def rollback(self) -> None:
         pass
+
+    @abstractmethod
+    def mark_read_only(self) -> None:
+        pass
