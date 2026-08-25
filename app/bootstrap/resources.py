@@ -9,6 +9,9 @@ from app.services.auth_service import JwtAuthService
 
 
 class AppResources:
+    """Owns every resource with a process-wide lifetime, built once at
+    startup and torn down once at shutdown."""
+
     def __init__(self, database: DataBase, auth_service: AbstractAuthService):
         self.database = database
         self.auth_service = auth_service

@@ -29,6 +29,8 @@ async def database() -> AsyncIterator[DataBase]:
 
 @pytest_asyncio.fixture
 async def session(database: DataBase) -> AsyncIterator[AsyncSession]:
+    """A session bound to one connection/transaction via SAVEPOINT, rolled
+    back at teardown regardless of how many times code under test commits."""
     async with database.engine.connect() as connection:
         outer_transaction = await connection.begin()
         session_factory = async_sessionmaker(

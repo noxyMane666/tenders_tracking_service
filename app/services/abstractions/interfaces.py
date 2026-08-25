@@ -43,4 +43,5 @@ class AbstractTenderService(ABC):
 class AbstractAuthService(ABC):
     @abstractmethod
     def get_current_user_id(self, token: str) -> UUID:
-        pass
+        """Raises InvalidAuthTokenException if the token is missing, malformed,
+        expired, or has no usable user id claim."""

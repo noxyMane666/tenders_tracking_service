@@ -4,7 +4,7 @@ from app.enums.tender_status import TenderStatus
 
 
 class DomainException(Exception):
-    pass
+    """Base class for business-rule violations handled by GlobalExceptionHandler."""
 
 
 class TenderNotFoundException(DomainException):
