@@ -15,7 +15,7 @@ from app.services.tender_service import TenderServiceImpl
 _bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def get_database(request: Request) -> DataBase:
+async def get_database(request: Request) -> DataBase:
     return request.app.state.database
 
 
@@ -26,23 +26,23 @@ async def get_session(
         yield session
 
 
-def get_unit_of_work(
+async def get_unit_of_work(
         session: AsyncSession = Depends(get_session)
 ) -> AbstractUnitOfWork:
     return SqlAlchemyUnitOfWork(session)
 
 
-def get_tender_service(
+async def get_tender_service(
         uow: AbstractUnitOfWork = Depends(get_unit_of_work)
 ) -> AbstractTenderService:
     return TenderServiceImpl(uow)
 
 
-def get_auth_service(request: Request) -> AbstractAuthService:
+async def get_auth_service(request: Request) -> AbstractAuthService:
     return request.app.state.auth_service
 
 
-def get_current_user_id(
+async def get_current_user_id(
         credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
         auth_service: AbstractAuthService = Depends(get_auth_service)
 ) -> UUID:
