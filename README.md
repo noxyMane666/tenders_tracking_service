@@ -112,7 +112,6 @@ python run.py
 ## Тестирование
 
 ```bash
-pip install -r requirements-dev.txt
 pytest                    # всё
 pytest tests/unit         # без БД, быстро
 pytest tests/integration  # нужен доступный Postgres (из DB_CONNECTION_STRING)
