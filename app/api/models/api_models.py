@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.enums.tender_status import TenderStatus
 
@@ -16,13 +16,16 @@ class CreateTenderDTO(BaseModel):
     published_at: datetime | None = None
     deadline_at: datetime | None = None
 
+    @field_validator("published_at", "deadline_at")
+    @classmethod
+    def _require_timezone_aware(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            raise ValueError("must include a timezone offset, e.g. '2026-01-01T00:00:00+00:00'")
+        return value
+
     @model_validator(mode="after")
     def _check_deadline_after_published(self) -> "CreateTenderDTO":
         if self.published_at is not None and self.deadline_at is not None:
-            if bool(self.published_at.tzinfo) != bool(self.deadline_at.tzinfo):
-                raise ValueError(
-                    "published_at and deadline_at must both include a timezone offset or both omit one"
-                )
             if self.deadline_at <= self.published_at:
                 raise ValueError("deadline_at must be after published_at")
         return self
