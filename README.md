@@ -71,6 +71,7 @@ claim'а с id пользователя). Валидная подпись озн
 - **Pydantic v2** — валидация запросов/ответов
 - **PyJWT** — проверка JWT
 - **Redis** — кэш чтения тендера по id
+- **Docker** + **docker compose** — контейнеризация (приложение + Postgres + Redis)
 - **pytest** + **pytest-asyncio** — тесты
 
 ## API
@@ -99,6 +100,12 @@ MAX_POOL_SIZE=10
 MAX_OVERFLOW=20
 POOL_TIMEOUT=30
 
+# Нужны только для docker-compose.yml (контейнер db) — сам код их не читает,
+# приложению достаточно DB_CONNECTION_STRING выше
+DB_USER=change-me
+DB_PASSWORD=change-me
+DB_NAME=change-me
+
 JWT_SECRET=<секрет, которым подписаны входящие токены>
 JWT_ALGORITHM=HS256
 JWT_USER_ID_CLAIM=sub
@@ -123,6 +130,33 @@ alembic upgrade head
 ```bash
 python run.py
 ```
+
+### Через Docker
+
+```bash
+docker compose up --build
+```
+
+Поднимает три контейнера — `app`, `db` (Postgres 16), `redis` (Redis 7).
+Миграции применяются автоматически при старте `app`, до uvicorn — см.
+`docker-entrypoint.sh`. Сервис на `http://localhost:8000`, Swagger — на
+`http://localhost:8000/docs`.
+
+Никаких значений, похожих на пароль, в `docker-compose.yml` нет — только
+имена переменных. Всё берётся из `.env` (тот же файл, что и для запуска
+без Docker) через `env_file`, без дублирования. Без `.env` — или без
+`DB_USER`/`DB_PASSWORD`/`DB_NAME`/`JWT_SECRET` в нём — `docker compose up`
+не запустится вообще, а сразу укажет, какой переменной не хватает
+(`required variable ... is missing a value`) — никакого дефолтного пароля
+нет и подставиться не может.
+
+Единственное, что явно переопределено поверх `env_file` — `DB_CONNECTION_STRING`
+и `REDIS_URL`. Это не дублирование `.env`, а другое значение по смыслу:
+внутри Docker-сети Postgres и Redis видны по именам сервисов (`db`,
+`redis`), а не `localhost`, на который указывает `.env` для запуска без
+Docker. `DB_CONNECTION_STRING` для контейнера собирается из тех же
+`DB_USER`/`DB_PASSWORD`/`DB_NAME`, что и сам контейнер `db` — они не
+могут разойтись.
 
 ## Тестирование
 
